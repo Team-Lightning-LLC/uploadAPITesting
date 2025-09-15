@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DocuGen Finance · Wireframe</title>
+<!-- Keep libraries for JS functionality -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+/* ========= WIREFRAME CSS (minimal, utility-like) ========= */
+:root{
+  --ink:#111; --muted:#666; --border:#d9d9d9; --bg:#fafafa; --card:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;color:var(--ink);background:#fff}
+
+/* Top bar */
+.header{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#fff;border-bottom:1px solid var(--border)}
+.logo-section{display:flex;align-items:center;gap:8px}
+.logo{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;font-weight:700}
+.brand-info h1{font-size:16px}
+.brand-info .subtitle{font-size:11px;color:var(--muted)}
+.header-title{font-size:16px;font-weight:600}
+
+/* Slim banner (optional context) */
+.advisor-banner{margin-top:56px;padding:8px 12px;background:#f0f0f0;border-bottom:1px solid var(--border)}
+.advisor-banner h2{font-size:14px;font-weight:600}
+
+/* 3‑col layout */
+.main-layout{display:grid;grid-template-columns:240px 1fr 280px;gap:12px;padding:12px;max-width:1600px;margin:0 auto}
+
+/* Card/column shell */
+.column{border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;min-height:0}
+.column-header{padding:8px 12px;border-bottom:1px solid var(--border);font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.column-body{padding:8px 12px;overflow:auto;min-height:120px}
+
+/* Small buttons / links */
+button, .btn{appearance:none;border:1px solid var(--border);background:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+.icon-btn{width:28px;height:28px;display:grid;place-items:center}
+.doc-control,.doc-action{color:#000;text-decoration:underline;cursor:pointer}
+
+/* Lists / items */
+.client-item{padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer}
+.client-item.active{outline:2px solid #000}
+.empty-state{padding:10px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:6px}
+
+.doc-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.doc-item:last-child{border-bottom:0}
+.doc-name{font-weight:600}
+.doc-date{font-size:12px;color:var(--muted)}
+.doc-actions{display:flex;gap:8px}
+
+/* Upload drop areas (right + modal) */
+.upload-area-right,.modal-upload-area{border:1px dashed var(--border);border-radius:6px;padding:12px;text-align:center;position:relative}
+.upload-area-right .upload-input,.modal-upload-input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-text-right,.modal-upload-text{font-size:12px;color:var(--muted)}
+.selected-files{margin-top:8px}
+.file-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:13px}
+.file-remove{border:none;background:transparent;color:#000;text-decoration:underline;cursor:pointer}
+
+/* Simple queue */
+.queue-header{padding:6px 8px;border-top:1px solid var(--border);font-weight:600}
+.queue-container{max-height:150px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:6px}
+.queue-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-left-color:#000;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.queue-timer{font:12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
+.empty-queue{font-size:12px;color:var(--muted);text-align:center}
+
+/* Inline profile status */
+.profile-status-inline{display:flex;align-items:center;gap:6px;font-size:12px}
+.status-light-inline{width:8px;height:8px;border-radius:50%}
+.status-light-inline.green{background:#0a0}
+.status-light-inline.red{background:#a00}
+.generate-profile-btn-inline{border:1px solid var(--border);background:#fff;padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer}
+
+/* Forms */
+.search-bar, .generator-select, #clientNameInput{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px}
+.doc-controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.generator-form{display:grid;gap:8px}
+.generator-btn{width:100%}
+
+/* Dialogs (viewer / delete / add client) */
+ dialog{border:1px solid var(--border);border-radius:8px;padding:0;width:min(95vw,1000px)}
+ dialog::backdrop{background:rgba(0,0,0,.3)}
+ .viewer-header,.modal-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:#f7f7f7}
+ .viewer-title{font-weight:700}
+ #viewerFrame{width:100%;height:70vh;border:0}
+ .viewer-content{padding:16px;max-height:70vh;overflow:auto}
+ .modal-body{padding:12px}
+ .modal-actions{display:flex;gap:8px;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--border)}
+ .delete-warning,.document-info{border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:8px}
+ .checkbox-container{display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer}
+ .checkbox-container input[type="checkbox"]{margin-top:2px}
+ .modal-close-btn{border:none;background:transparent;font-size:18px;cursor:pointer}
+
+/* Responsive */
+@media (max-width: 900px){
+  .main-layout{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo-section">
+    <div class="logo">DG</div>
+    <div class="brand-info">
+      <h1>DocuGen</h1>
+      <div class="subtitle">By Doculabs</div>
+    </div>
+  </div>
+  <h1 class="header-title">Finance</h1>
+</div>
+
+<!-- Context banner -->
+<div class="advisor-banner"><h2>Document Generation Platform</h2></div>
+
+<!-- Main -->
+<div class="main-layout">
+  <!-- Clients Column -->
+  <div class="column clients-column">
+    <div class="column-header">
+      <span>Clients</span>
+      <div class="client-header-actions">
+        <button class="icon-btn refresh-clients-btn" onclick="loadClientsFromVertesia()" title="Refresh">↻</button>
+        <button class="icon-btn add-client-btn" onclick="openAddClientModal()" title="Add">+</button>
+      </div>
+    </div>
+    <div class="column-body">
+      <div id="clientList"></div>
+    </div>
+  </div>
+
+  <!-- Documents Column -->
+  <div class="column documents-column">
+    <div class="column-header" id="documentsHeader">
+      <span>Documents</span>
+      <div id="profileStatus" class="profile-status-inline"></div>
+    </div>
+    <div class="column-body">
+      <div class="doc-controls">
+        <input type="text" class="search-bar" id="searchBar" placeholder="Search documents..." onkeyup="searchDocuments()" />
+        <span class="doc-control" onclick="sortDocuments()">Sort</span>
+        <span class="doc-control" onclick="toggleDocuments()">Toggle</span>
+      </div>
+      <div class="doc-list" id="documentsList"></div>
+    </div>
+  </div>
+
+  <!-- Generate & Upload Column -->
+  <div class="column generate-column">
+    <div class="column-header">Generate & Upload</div>
+    <div class="column-body">
+      <div class="action-section generate-section">
+        <div class="section-header" style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600">Generate</div>
+        <div class="generator-form">
+          <select class="generator-select" id="docTypeSelect">
+            <option value="">Select document type...</option>
+            <option value="Portfolio Analysis">Portfolio Analysis</option>
+            <option value="15 min Meeting Preparation">15 min Meeting Preparation</option>
+            <option value="45 min Meeting Preparation">45 min Meeting Preparation</option>
+            <option value="Quarterly Report">Quarterly Report</option>
+            <option value="Tax Planning">Tax Planning Document</option>
+            <option value="Retirement Planning">Retirement Planning</option>
+            <option value="Client Current State">Client Current State</option>
+            <option value="Risk Assessment">Risk Assessment</option>
+            <option value="Compose Correspondence">Compose Correspondence</option>
+          </select>
+          <button class="generator-btn" id="generateBtn" onclick="generateDocument()">Generate</button>
+        </div>
+        <div class="queue-header">Generation Queue (0/5)</div>
+        <div class="queue-container" id="queueItems">
+          <div class="empty-queue">No documents generating</div>
+        </div>
+      </div>
+
+      <div class="action-section upload-section" style="margin-top:12px">
+        <div class="section-header" style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600">Upload</div>
+        <div class="upload-area-right">
+          <input type="file" class="upload-input" id="fileUpload" onchange="handleFileUpload(event)" multiple accept=".pdf,.doc,.docx,.xlsx,.ppt,.pptx" />
+          <div class="upload-text-right">Drop files here or click to upload</div>
+        </div>
+        <div class="queue-header">Upload Queue (0)</div>
+        <div class="queue-container" id="uploadQueueItems">
+          <div class="empty-queue">No files uploading</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Viewer Dialog -->
+<dialog id="viewer" aria-label="Document viewer">
+  <div class="viewer-header">
+    <div class="viewer-title" id="viewerTitle">Document</div>
+    <button type="button" class="btn" id="closeViewer">Close</button>
+  </div>
+  <iframe id="viewerFrame"></iframe>
+</dialog>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteModal" aria-label="Delete confirmation">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Delete Document</h3></div>
+    <div class="modal-body">
+      <div class="delete-warning"><strong>This action cannot be undone.</strong></div>
+      <div class="document-info"><strong>Document:</strong> <span id="deleteDocumentName"></span></div>
+      <div class="delete-confirmation">
+        <label class="checkbox-container">
+          <input type="checkbox" id="deleteConfirmCheck" />
+          I understand this action is permanent and cannot be reversed
+        </label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelDelete">Cancel</button>
+      <button type="button" class="btn" id="confirmDelete" disabled>Delete Document</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Add Client Modal -->
+<dialog id="addClientModal" aria-label="Add new client">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Add New Client</h3>
+      <button type="button" class="modal-close-btn" onclick="closeAddClientModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:10px">
+        <label for="clientNameInput">Client Name</label>
+        <input type="text" id="clientNameInput" placeholder="John Smith" autocomplete="off" />
+        <div class="input-help" style="font-size:12px;color:var(--muted);margin-top:4px">Enter the client's full name</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Initial Documents (Optional)</label>
+        <div class="modal-upload-area">
+          <input type="file" class="modal-upload-input" id="clientFileUpload" multiple accept=".pdf,.doc,.docx,.xlsx,.ppt,.pptx" />
+          <div class="modal-upload-text">
+            <div>Drop files here or click to upload</div>
+          </div>
+        </div>
+        <div id="selectedFilesList" class="selected-files"></div>
+      </div>
+
+      <div class="document-info"><strong>Note:</strong> After creating the client, documents may take time to appear while processing.</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeAddClientModal()">Cancel</button>
+      <button type="button" class="btn" id="createClientBtn" onclick="createNewClient()">Create Client</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+// ====== JS (kept functionally identical to original) ======
+// Rate limiting variables
+let lastGenerationTime = 0;
+const GENERATION_COOLDOWN = 10000; // 10 seconds in milliseconds
+const MAX_CONCURRENT_GENERATIONS = 5;
+
+// Dynamic client data - will be populated from Vertesia
+let clientsData = {};
+
+// Document data - starts empty, will be populated by API
+let documentsData = [];
+
+let currentClient = null;
+let sortOrder = 'desc';
+let documentsVisible = true;
+let selectedFiles = [];
+
+// Upload Queue Variables (background processing)
+let uploadQueue = [];
+let isUploadProcessing = false;
+let uploadQueueId = 0;
+
+// Load clients dynamically from Vertesia
+async function loadClientsFromVertesia() {
+  try {
+    const response = await fetch('https://api.vertesia.io/api/v1/objects?limit=1000&offset=0', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch documents: ${response.status}`);
+    }
+
+    const documents = await response.json();
+
+    // Extract unique client names
+    const clientNamesMap = new Map();
+    documents.forEach(doc => {
+      let clientName = null;
+      if (doc.properties && doc.properties.client) {
+        clientName = doc.properties.client;
+      } else if (doc.name) {
+        if (doc.name.includes(' - ')) clientName = doc.name.split(' - ')[0].trim();
+        else if (doc.name.includes('_')) {
+          const parts = doc.name.split('_');
+          if (parts.length >= 2) clientName = `${parts[0]} ${parts[1]}`;
+        } else {
+          const nameMatch = doc.name.match(/^([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+          if (nameMatch) clientName = nameMatch[1];
+        }
+      }
+      if (clientName) {
+        clientName = clientName.replace(/\.(pdf|docx?|xlsx?|pptx?)$/i, '').trim();
+        if (clientName.includes(' ') && clientName.split(' ').length >= 2) {
+          const normalized = clientName.toLowerCase().replace(/\s+/g,' ').trim();
+          if (!clientNamesMap.has(normalized)) clientNamesMap.set(normalized, clientName);
+        }
+      }
+    });
+
+    clientsData = {};
+    Array.from(clientNamesMap.entries()).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([norm, display]) => {
+      const clientId = norm.replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,'');
+      clientsData[clientId] = { name: display };
+    });
+
+    renderClients();
+    if (!currentClient || !clientsData[currentClient]) {
+      const firstClientId = Object.keys(clientsData)[0];
+      if (firstClientId) switchClient(firstClientId);
+    } else {
+      await loadClientDocuments(currentClient);
+    }
+  } catch (error) {
+    console.error('Failed to load clients:', error);
+  }
+}
+
+// Test Vertesia API function (button not rendered in wireframe; keep for parity)
+async function testVertesiaAPI() {
+  const testBtn = document.getElementById('testApiBtn');
+  if (testBtn) { testBtn.disabled = true; testBtn.textContent = 'Testing...'; }
+  try {
+    const response = await fetch('https://api.vertesia.io/api/v1/objects?limit=100&offset=0', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9',
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      const result = await response.json();
+      alert(`Successfully loaded ${Array.isArray(result)?result.length:0} documents!`);
+      await loadClientsFromVertesia();
+    } else {
+      alert(`API call failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Network error:', error);
+  } finally { if (testBtn) { testBtn.disabled = false; testBtn.textContent = 'Test API Call'; } }
+}
+
+function extractClientFromName(docName){
+  if (!docName) return 'all';
+  for (const [clientId, client] of Object.entries(clientsData)) {
+    if (docName.toLowerCase().includes(client.name.toLowerCase())) return clientId;
+  }
+  return 'all';
+}
+
+// AI Profile Functions
+function checkClientProfile(clientId){
+  const client = clientsData[clientId];
+  if (!client) return false;
+  const [firstName, lastName=''] = client.name.split(' ');
+  return documentsData.some(doc => {
+    if (doc.client !== clientId) return false;
+    const n = doc.name.toLowerCase();
+    const ai = n.includes('ai_profile') || n.includes('ai profile') || n.includes('aiprofile');
+    const hasName = n.includes(firstName.toLowerCase()) && (!lastName || n.includes(lastName.toLowerCase()));
+    return ai && hasName;
+  });
+}
+
+function updateProfileStatus(){
+  const el = document.getElementById('profileStatus');
+  if (!currentClient || !clientsData[currentClient]) { el.innerHTML = ''; return; }
+  const hasProfile = checkClientProfile(currentClient);
+  el.innerHTML = hasProfile
+    ? `<span class="status-light-inline green"></span><span>AI Profile Complete</span>`
+    : `<span class="status-light-inline red"></span><span>AI Profile Required</span><button class="generate-profile-btn-inline" onclick="generateAIProfile()">Generate</button>`;
+}
+
+async function generateAIProfile(){
+  if (!currentClient || !clientsData[currentClient]) { alert('Please select a client first'); return; }
+  const now = Date.now(); const since = now - lastGenerationTime; const active = documentQueue.activeGenerations.size;
+  if (since < GENERATION_COOLDOWN) { alert(`Please wait ${Math.ceil((GENERATION_COOLDOWN-since)/1000)} more seconds.`); return; }
+  if (active >= MAX_CONCURRENT_GENERATIONS) { alert(`Max of ${MAX_CONCURRENT_GENERATIONS} docs at once.`); return; }
+  const btn = document.querySelector('.generate-profile-btn-inline'); if (btn){ btn.disabled = true; btn.textContent='Generating...'; }
+  lastGenerationTime = now; documentQueue.addGeneration('AI Profile', currentClient);
+  try{
+    await fetch('https://api.vertesia.io/api/v1/execute/async',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9'},
+      body:JSON.stringify({
+        type:'conversation',interaction:'TESTFinancialProfileGenerator@2',
+        data:{task:`For ${clientsData[currentClient].name} create an AI Profile`},
+        config:{environment:'681915c6a01fb262a410c161',model:'publishers/anthropic/models/claude-3-7-sonnet'}
+      })
+    });
+  }catch(e){console.error(e);alert('Failed to generate AI Profile.');}
+  finally{ if (btn){ btn.disabled=false; btn.textContent='Generate'; } }
+}
+
+class DocumentQueue{
+  constructor(){ this.activeGenerations=new Map(); this.timers=new Map(); }
+  addGeneration(docType, clientId){
+    const id=Date.now()+Math.random();
+    const g={id,docType,clientId,clientName:clientsData[clientId].name,startTime:Date.now(),estimatedDuration:5*60*1000};
+    this.activeGenerations.set(id,g); this.startTimer(id); this.updateQueueDisplay(); return id;
+  }
+  startTimer(id){
+    const t=setInterval(()=>{ const g=this.activeGenerations.get(id); if(!g){clearInterval(t);return;}
+      const elapsed=Date.now()-g.startTime; if(elapsed>=g.estimatedDuration){ this.completeGeneration(id);} this.updateQueueDisplay(); },1000);
+    this.timers.set(id,t);
+  }
+  completeGeneration(id){ const g=this.activeGenerations.get(id); if(g){
+      const newDoc={id:Date.now(),name:g.docType,date:new Date().toISOString().split('T')[0],client:g.clientId,type:'generated'};
+      documentsData.unshift(newDoc); if(g.clientId===currentClient){ renderDocuments(); updateProfileStatus(); }
+    } this.removeGeneration(id); }
+  removeGeneration(id){ clearInterval(this.timers.get(id)); this.timers.delete(id); this.activeGenerations.delete(id); this.updateQueueDisplay(); }
+  updateQueueDisplay(){
+    const items=document.getElementById('queueItems'); const header=document.querySelector('.queue-header');
+    const activeCount=this.activeGenerations.size; if(header) header.textContent=`In Queue (${activeCount}/${MAX_CONCURRENT_GENERATIONS})`;
+    items.innerHTML=''; this.activeGenerations.forEach(g=>{
+      const elapsed=Date.now()-g.startTime; const rem=Math.max(0,g.estimatedDuration-elapsed); const m=Math.floor(rem/60000); const s=Math.floor((rem%60000)/1000).toString().padStart(2,'0');
+      const div=document.createElement('div'); div.className='queue-item';
+      div.innerHTML=`<div class="spinner"></div><div style="flex:1"><div class="queue-item-name">${g.docType}</div><div class="queue-item-client">${g.clientName}</div></div><span class="queue-timer">${m}:${s}</span><button class="queue-cancel" onclick="documentQueue.removeGeneration(${g.id})">✕</button>`;
+      items.appendChild(div);
+    });
+  }
+}
+const documentQueue=new DocumentQueue();
+
+// Viewer helpers
+function openFormattedViewer(markdownContent,title){
+  const dlg=document.getElementById('viewer'); document.getElementById('viewerTitle').textContent=title;
+  const html=marked.parse(markdownContent); const frame=document.getElementById('viewerFrame');
+  frame.outerHTML=`<div id="viewerFrame" class="viewer-content">${html}</div>`; dlg.showModal();
+}
+function closeViewer(){ const dlg=document.getElementById('viewer'); const frame=document.getElementById('viewerFrame');
+  frame.outerHTML='<iframe id="viewerFrame"></iframe>'; if(dlg?.open) dlg.close(); }
+function openViewer(url,title){ const dlg=document.getElementById('viewer'); document.getElementById('viewerTitle').textContent=title||'Document'; document.getElementById('viewerFrame').src=url; dlg.showModal(); }
+
+function updateGenerateButtonCooldown(){
+  const btn=document.getElementById('generateBtn'); const now=Date.now(); const since=now-lastGenerationTime; const rem=GENERATION_COOLDOWN-since;
+  if(rem>0){ btn.textContent=`Generate (${Math.ceil(rem/1000)}s)`; btn.disabled=true; setTimeout(updateGenerateButtonCooldown,1000);} else { btn.textContent='Generate'; btn.disabled=false; }
+}
+
+// Search / sort / toggle
+function searchDocuments(){ const q=document.getElementById('searchBar').value.toLowerCase(); renderDocuments(q); }
+function sortDocuments(){ sortOrder=sortOrder==='desc'?'asc':'desc'; renderDocuments(); }
+function toggleDocuments(){ documentsVisible=!documentsVisible; document.querySelectorAll('.doc-item').forEach(i=>i.style.display=documentsVisible?'flex':'none'); }
+
+// Render docs
+function renderDocuments(searchQuery=''){
+  const list=document.getElementById('documentsList'); list.innerHTML=''; updateProfileStatus();
+  let filtered=documentsData.filter(doc=> (doc.client===currentClient||doc.client==='all') && (!searchQuery || doc.name.toLowerCase().includes(searchQuery)) );
+  if(filtered.length===0){ const e=document.createElement('div'); e.className='empty-state'; e.textContent='No documents found.'; list.appendChild(e); return; }
+  filtered.sort((a,b)=> sortOrder==='desc' ? new Date(b.date)-new Date(a.date) : new Date(a.date)-new Date(b.date));
+  filtered.forEach(doc=>{
+    const div=document.createElement('div'); div.className='doc-item';
+    div.innerHTML=`<div class="doc-info"><div class="doc-name">${doc.name}</div><div class="doc-date">${doc.date}</div></div><div class="doc-actions"><span class="doc-action" onclick="viewDocument('${doc.id}')">view</span><span class="doc-action" onclick="downloadDocument('${doc.id}')">download</span><span class="doc-action" onclick="deleteDocument('${doc.id}')">delete</span></div>`;
+    list.appendChild(div);
+  });
+}
+setTimeout(updateGenerateButtonCooldown,100);
+
+// Init
+async function init(){
+  await loadClientsFromVertesia();
+  document.getElementById('closeViewer').addEventListener('click', closeViewer);
+  document.getElementById('viewer').addEventListener('click', (e)=>{ const r=e.target.getBoundingClientRect(); const outside=e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom; if(outside) closeViewer(); });
+  document.getElementById('cancelDelete').addEventListener('click', cancelDocumentDelete);
+  document.getElementById('confirmDelete').addEventListener('click', confirmDocumentDelete);
+  document.getElementById('deleteConfirmCheck').addEventListener('change', function(){ document.getElementById('confirmDelete').disabled=!this.checked; });
+  document.getElementById('clientFileUpload').addEventListener('change', function(event){ const files=Array.from(event.target.files); selectedFiles=[...selectedFiles, ...files]; updateSelectedFilesList(); event.target.value=''; });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && document.getElementById('viewer').open) closeViewer(); if(e.key==='Escape' && document.getElementById('deleteModal').open) cancelDocumentDelete(); if(e.key==='Escape' && document.getElementById('addClientModal').open) closeAddClientModal(); });
+}
+
+// Clients list
+function renderClients(){
+  const list=document.getElementById('clientList'); list.innerHTML='';
+  if(Object.keys(clientsData).length===0){ const e=document.createElement('div'); e.className='empty-state'; e.textContent='No clients found. Add a client to get started.'; list.appendChild(e); return; }
+  const sorted=Object.entries(clientsData).sort((a,b)=>{ const A=a[1].name.split(' '), B=b[1].name.split(' '); const la=A[A.length-1], lb=B[B.length-1]; const cmp=la.localeCompare(lb); return cmp!==0?cmp:A[0].localeCompare(B[0]); });
+  sorted.forEach(([id,client])=>{
+    const div=document.createElement('div'); div.className=`client-item ${id===currentClient?'active':''}`;
+    const parts=client.name.split(' '); const display=`${parts[parts.length-1]}, ${parts[0]}`;
+    div.textContent=display; div.onclick=()=>switchClient(id); list.appendChild(div);
+  });
+}
+
+async function switchClient(clientId){
+  currentClient=clientId; const client=clientsData[clientId]; if(!client) return;
+  document.getElementById('documentsHeader').querySelector('span').textContent=`${client.name} Documents`;
+  renderClients(); await loadClientDocuments(clientId); updateProfileStatus();
+}
+
+async function loadClientDocuments(clientId){
+  const client=clientsData[clientId]; if(!client) return;
+  try{
+    const response=await fetch(`https://api.vertesia.io/api/v1/objects?name=${encodeURIComponent(client.name)}&limit=50`,{
+      method:'GET', headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9','Content-Type':'application/json' }
+    });
+    if(response.ok){
+      const result=await response.json();
+      documentsData=result.map(doc=>({ id:doc.id, name:doc.name, date:doc.created_at||doc.updated_at, client:clientId, type:'vertesia', vertesiaId:doc.id }));
+      renderDocuments();
+    }
+  }catch(e){ console.error('Failed to load client documents:', e); }
+}
+
+// Add Client
+function openAddClientModal(){ document.getElementById('addClientModal').showModal(); document.getElementById('clientNameInput').focus(); selectedFiles=[]; updateSelectedFilesList(); }
+function closeAddClientModal(){ document.getElementById('addClientModal').close(); document.getElementById('clientNameInput').value=''; selectedFiles=[]; updateSelectedFilesList(); }
+function updateSelectedFilesList(){
+  const filesList=document.getElementById('selectedFilesList'); filesList.innerHTML='';
+  selectedFiles.forEach((file,idx)=>{
+    const item=document.createElement('div'); item.className='file-item';
+    item.innerHTML=`<span>${file.name} (${(file.size/1024/1024).toFixed(2)} MB)</span><button type="button" class="file-remove" onclick="removeFile(${idx})">Remove</button>`;
+    filesList.appendChild(item);
+  });
+}
+function removeFile(i){ selectedFiles.splice(i,1); updateSelectedFilesList(); }
+
+async function createNewClient(){
+  const name=document.getElementById('clientNameInput').value.trim();
+  if(!name){ alert('Please enter a client name'); return; }
+  if(name.split(' ').length<2){ alert('Please enter both first and last name'); return; }
+  const exists=Object.values(clientsData).find(c=>c.name.toLowerCase()===name.toLowerCase()); if(exists){ alert('A client with this name already exists'); return; }
+  const btn=document.getElementById('createClientBtn'); btn.disabled=true; btn.textContent='Creating...';
+  try{
+    if(selectedFiles.length>0){ btn.textContent='Queuing files...'; selectedFiles.forEach(file=>{ const newName=generateFileName(name,file.name); uploadQueue.push({id:++uploadQueueId,file,originalName:file.name,newName,clientName:name}); }); processUploadQueue(); }
+    const clientId=name.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,''); clientsData[clientId]={name};
+    btn.textContent='Refreshing...'; await loadClientsFromVertesia(); if(clientsData[clientId]) switchClient(clientId);
+    closeAddClientModal(); let msg=`Client "${name}" created successfully!`; if(selectedFiles.length>0){ msg+=` ${selectedFiles.length} document(s) are being processed.`; }
+    alert(msg);
+    if(selectedFiles.length>0){ const delay=Math.max(selectedFiles.length*3000,10000); setTimeout(()=>{ loadClientDocuments(clientId); }, delay); }
+  }catch(e){ console.error('Error creating client:', e); alert(`Failed to create client: ${e.message}`); }
+  finally{ btn.disabled=false; btn.textContent='Create Client'; }
+}
+
+// Upload
+function generateFileName(clientName, original){
+  if(!clientName.trim()) return original;
+  const [first='',last='']=clientName.trim().split(' ');
+  const base=original.replace(/\.[^/.]+$/, ''), ext=original.split('.').pop();
+  const abbrev=base.split(' ').slice(0,3).join('_').substring(0,20).replace(/[^a-zA-Z0-9_]/g,'');
+  return `${first}_${last}_${abbrev}.${ext}`;
+}
+
+async function handleFileUpload(event){
+  const files=Array.from(event.target.files); if(files.length===0) return;
+  if(!currentClient||!clientsData[currentClient]){ alert('Please select a client first'); return; }
+  const clientName=clientsData[currentClient].name;
+  files.forEach(file=>{ const newName=generateFileName(clientName,file.name); uploadQueue.push({id:++uploadQueueId,file,originalName:file.name,newName,clientName}); });
+  processUploadQueue(); const delay=Math.max(files.length*3000,10000); setTimeout(()=>{ loadClientDocuments(currentClient); }, delay);
+  alert(`${files.length} file(s) added to upload queue.`); event.target.value='';
+}
+
+async function processUploadQueue(){ if(isUploadProcessing||uploadQueue.length===0) return; isUploadProcessing=true;
+  while(uploadQueue.length>0){ const item=uploadQueue.shift(); try{ await uploadSingleFile(item);}catch(e){ console.error('Upload failed',e);} if(uploadQueue.length>0){ await new Promise(r=>setTimeout(r, 3000+Math.random()*2000)); } }
+  isUploadProcessing=false; }
+
+async function uploadSingleFile(q){
+  const urlRes=await fetch('https://api.vertesia.io/api/v1/objects/upload-url',{ method:'POST', headers:{ 'Content-Type':'application/json','Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' }, body:JSON.stringify({ name:q.newName, mime_type:q.file.type||'application/pdf' }) });
+  if(!urlRes.ok) throw new Error(`Failed to get upload URL: ${urlRes.status}`);
+  const uploadData=await urlRes.json();
+  const gcsRes=await fetch(uploadData.url,{ method:'PUT', body:q.file }); if(!gcsRes.ok) throw new Error(`Failed to upload file: ${gcsRes.status}`);
+  const createRes=await fetch('https://api.vertesia.io/api/v1/objects',{ method:'POST', headers:{ 'Content-Type':'application/json','Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' }, body:JSON.stringify({ name:q.newName, description:`Document uploaded for ${q.clientName}`, content:{ source:uploadData.id, type:q.file.type||'application/pdf', name:q.newName }, properties:{ client:q.clientName, original_name:q.originalName, uploaded_at:new Date().toISOString() } }) });
+  if(!createRes.ok) throw new Error(`Failed to create object: ${createRes.status}`);
+  return await createRes.json();
+}
+
+// Generate document (requires AI Profile)
+async function generateDocument(){
+  if(!currentClient||!clientsData[currentClient]){ alert('Please select a client first'); return; }
+  if(!checkClientProfile(currentClient)){ alert('Please generate an AI Profile first.'); return; }
+  const now=Date.now(); const since=now-lastGenerationTime; const active=documentQueue.activeGenerations.size;
+  if(since<GENERATION_COOLDOWN){ alert(`Please wait ${Math.ceil((GENERATION_COOLDOWN-since)/1000)} more seconds.`); return; }
+  if(active>=MAX_CONCURRENT_GENERATIONS){ alert(`Maximum of ${MAX_CONCURRENT_GENERATIONS} documents at once.`); return; }
+  const sel=document.getElementById('docTypeSelect'); const type=sel.value; if(!type){ alert('Please select a document type'); return; }
+  lastGenerationTime=now; documentQueue.addGeneration(type,currentClient); sel.value='';
+  try{
+    await fetch('https://api.vertesia.io/api/v1/execute/async',{
+      method:'POST', headers:{ 'Content-Type':'application/json','Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' },
+      body:JSON.stringify({ type:'conversation', interaction:'AdvisorAssistant@2', data:{ task:`For ${clientsData[currentClient].name} create a ${type} document` }, config:{ environment:'681915c6a01fb262a410c161', model:'publishers/anthropic/models/claude-3-7-sonnet' } })
+    });
+  }catch(e){ console.error('API error:',e); }
+}
+
+// View / download / delete
+async function viewDocument(id){
+  const doc=documentsData.find(d=>d.id===id); if(!doc||!doc.vertesiaId){ alert('Cannot view this document - missing ID'); return; }
+  try{
+    const oRes=await fetch(`https://api.vertesia.io/api/v1/objects/${doc.vertesiaId}`,{ headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' } });
+    if(!oRes.ok) throw new Error(`Failed to get object: ${oRes.status}`);
+    const obj=await oRes.json(); const fileUri=obj.content?.source; if(!fileUri) throw new Error('No file source found');
+    const dRes=await fetch('https://api.vertesia.io/api/v1/objects/download-url',{ method:'POST', headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9','Content-Type':'application/json' }, body:JSON.stringify({ file:fileUri }) });
+    if(!dRes.ok) throw new Error(`Failed to get download URL: ${dRes.status}`);
+    const d=await dRes.json();
+    const contentRes=await fetch(d.url); const type=contentRes.headers.get('content-type');
+    if(type?.includes('text/') || obj.content?.type==='text/markdown' || obj.content?.type?.includes('text/')){
+      const text=await contentRes.text(); if(text.includes('# ')||text.includes('## ')||obj.content?.type==='text/markdown'){ openFormattedViewer(text, doc.name); }
+      else { const dlg=document.getElementById('viewer'); document.getElementById('viewerTitle').textContent=doc.name; const frame=document.getElementById('viewerFrame'); frame.outerHTML=`<div id="viewerFrame" class="viewer-content"><pre style="white-space:pre-wrap">${text}</pre></div>`; dlg.showModal(); }
+    } else { openViewer(d.url, doc.name); }
+  }catch(e){ console.error('View document error:',e); alert(`Failed to view document: ${e.message}`); }
+}
+
+async function downloadDocument(id){
+  const doc=documentsData.find(d=>d.id===id); if(!doc||!doc.vertesiaId){ alert('Cannot download this document - missing ID'); return; }
+  try{
+    const oRes=await fetch(`https://api.vertesia.io/api/v1/objects/${doc.vertesiaId}`,{ headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' } });
+    if(!oRes.ok) throw new Error(`Failed to get object: ${oRes.status}`);
+    const obj=await oRes.json(); const fileUri=obj.content?.source; if(!fileUri) throw new Error('No file source found');
+    let dRes=await fetch('https://api.vertesia.io/api/v1/objects/download-url',{ method:'POST', headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9','Content-Type':'application/json' }, body:JSON.stringify({ file:fileUri, format:'original' }) });
+    if(!dRes.ok){ dRes=await fetch('https://api.vertesia.io/api/v1/objects/download-url',{ method:'POST', headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9','Content-Type':'application/json' }, body:JSON.stringify({ file:fileUri }) }); }
+    if(!dRes.ok) throw new Error(`Failed to get download URL: ${dRes.status}`);
+    const d=await dRes.json();
+    const textRes=await fetch(d.url); const markdown=await textRes.text();
+    const html=marked.parse(markdown);
+    const tmp=document.createElement('div'); tmp.innerHTML=html; tmp.style.cssText='font:14px/1.6 system-ui;color:#111;max-width:900px;margin:0 auto;padding:24px';
+    document.body.appendChild(tmp);
+    const opt={ margin:0.5, filename: doc.name.replace(/\.[^/.]+$/,'')+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in',format:'letter',orientation:'portrait'} };
+    try{ await html2pdf().set(opt).from(tmp).save(); } finally { document.body.removeChild(tmp); }
+  }catch(e){ console.error('Download document error:',e); alert(`Failed to download document: ${e.message}`); }
+}
+
+// Delete
+let documentToDelete=null;
+function deleteDocument(id){
+  const doc=documentsData.find(d=>d.id===id); if(!doc){ alert('Document not found'); return; }
+  documentToDelete=doc; document.getElementById('deleteDocumentName').textContent=doc.name;
+  document.getElementById('deleteConfirmCheck').checked=false; document.getElementById('confirmDelete').disabled=true;
+  document.getElementById('deleteModal').showModal();
+}
+async function confirmDocumentDelete(){
+  if(!documentToDelete) return; try{
+    const res=await fetch(`https://api.vertesia.io/api/v1/objects/${documentToDelete.vertesiaId}`,{ method:'DELETE', headers:{ 'Authorization':'Bearer sk-544583102491bf69b0351418bbdd2aa9' } });
+    if(!res.ok) throw new Error(`Failed to delete document: ${res.status}`);
+    documentsData=documentsData.filter(d=>d.id!==documentToDelete.id); renderDocuments(); updateProfileStatus();
+    document.getElementById('deleteModal').close(); documentToDelete=null;
+  }catch(e){ console.error('Delete error:',e); alert(`Failed to delete document: ${e.message}`); }
+}
+function cancelDocumentDelete(){ document.getElementById('deleteModal').close(); documentToDelete=null; }
+
+// Boot
+window.onload = init;
+</script>
+</body>
+</html>
