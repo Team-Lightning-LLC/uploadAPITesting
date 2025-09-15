@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertesia Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vertesia Upload Test</h1>
+    
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" style="display: none;" onchange="uploadFile(event)">
+        <p>Click to select file or drag and drop</p>
+    </div>
+    
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log" class="log">Ready to upload...</div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        async function uploadFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            log(`Starting upload for: ${file.name} (${file.size} bytes)`);
+            
+            try {
+                // Step 1: Get upload URL
+                log('Step 1: Getting upload URL...');
+                const urlResponse = await fetch('https://api.vertesia.io/api/v1/objects/upload-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
+                    },
+                    body: JSON.stringify({
+                        "name": file.name,
+                        "mime_type": file.type || "application/pdf"
+                    })
+                });
+
+                if (!urlResponse.ok) {
+                    throw new Error(`Upload URL request failed: ${urlResponse.status}`);
+                }
+
+                const uploadData = await urlResponse.json();
+                log(`Upload URL response: ${JSON.stringify(uploadData, null, 2)}`);
+
+                // Step 2: Upload file
+                log('Step 2: Uploading file to storage...');
+                const fileUploadResponse = await fetch(uploadData.url, {
+                    method: 'PUT',
+                    body: file
+                });
+
+                log(`File upload status: ${fileUploadResponse.status}`);
+                if (!fileUploadResponse.ok) {
+                    const errorText = await fileUploadResponse.text();
+                    log(`File upload error: ${errorText}`);
+                    throw new Error(`File upload failed: ${fileUploadResponse.status}`);
+                }
+
+                log('File uploaded successfully to storage');
+
+                // Step 3: Create object
+                log('Step 3: Creating object in Vertesia...');
+                const objectPayload = {
+                    "name": file.name,
+                    "description": `Test upload: ${file.name}`,
+                    "content": {
+                        "source": `gs://store_prod_dd0d3a_2ca798/${uploadData.id}`,
+                        "type": file.type || "application/pdf",
+                        "name": file.name
+                    },
+                    "properties": {
+                        "test_upload": true,
+                        "uploaded_at": new Date().toISOString()
+                    }
+                };
+
+                log(`Object creation payload: ${JSON.stringify(objectPayload, null, 2)}`);
+
+                const createObjectResponse = await fetch('https://api.vertesia.io/api/v1/objects', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
+                    },
+                    body: JSON.stringify(objectPayload)
+                });
+
+                log(`Object creation status: ${createObjectResponse.status}`);
+                
+                if (!createObjectResponse.ok) {
+                    const errorText = await createObjectResponse.text();
+                    log(`Object creation error: ${errorText}`);
+                    throw new Error(`Object creation failed: ${createObjectResponse.status}`);
+                }
+
+                const createdObject = await createObjectResponse.json();
+                log(`SUCCESS! Object created: ${JSON.stringify(createdObject, null, 2)}`);
+
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+    </script>
+</body>
+</html>
