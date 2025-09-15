@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertesia Upload Test</title>
+    <title>Vertesia Upload Test - With Queue</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 600px;
+            max-width: 800px;
             margin: 50px auto;
             padding: 20px;
         }
@@ -21,6 +21,15 @@
         }
         .upload-area:hover {
             border-color: #007bff;
+        }
+        .client-input {
+            margin: 20px 0;
+        }
+        .client-input input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
         }
         button {
             background: #007bff;
@@ -37,6 +46,35 @@
         .button-group {
             margin: 20px 0;
         }
+        .queue-status {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .queue-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .queue-item.processing {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .queue-item.completed {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .queue-item.failed {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
         .log {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -49,24 +87,57 @@
             max-height: 400px;
             overflow-y: auto;
         }
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <h1>Vertesia Upload Test</h1>
+    <h1>Vertesia Upload Test - With Queue System</h1>
+    
+    <div class="client-input">
+        <label>Client Name: </label>
+        <input type="text" id="clientName" placeholder="John Smith" value="Ahmed Ishmal">
+        <small> (First Last format for naming convention)</small>
+    </div>
     
     <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" style="display: none;" onchange="uploadFile(event)">
-        <p>Click to select file or drag and drop</p>
+        <input type="file" id="fileInput" style="display: none;" onchange="addFilesToQueue(event)" multiple>
+        <p>Click to select files or drag and drop (multiple files supported)</p>
     </div>
     
     <div class="button-group">
+        <button onclick="startQueue()" id="startBtn">Start Queue Processing</button>
+        <button onclick="clearQueue()">Clear Queue</button>
         <button onclick="clearLog()">Clear Log</button>
         <button onclick="copyLog()">Copy Log</button>
+    </div>
+    
+    <div class="queue-status">
+        <h3>Upload Queue Status</h3>
+        <div>Queue Length: <span id="queueLength">0</span></div>
+        <div>Processing: <span id="currentlyProcessing">None</span></div>
+        <div>Next Refresh: <span id="nextRefresh">Not scheduled</span></div>
+        <div id="queueItems"></div>
     </div>
     
     <div id="log" class="log">Ready to upload...</div>
 
     <script>
+        let uploadQueue = [];
+        let isProcessing = false;
+        let queueId = 0;
+        let refreshTimer = null;
+
         function log(message) {
             const logDiv = document.getElementById('log');
             const timestamp = new Date().toLocaleTimeString();
@@ -88,94 +159,228 @@
             });
         }
 
-        async function uploadFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            log(`Starting upload for: ${file.name} (${file.size} bytes)`);
+        function generateFileName(clientName, originalFileName) {
+            if (!clientName.trim()) return originalFileName;
             
-            try {
-                // Step 1: Get upload URL
-                log('Step 1: Getting upload URL...');
-                const urlResponse = await fetch('https://api.vertesia.io/api/v1/objects/upload-url', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
-                    },
-                    body: JSON.stringify({
-                        "name": file.name,
-                        "mime_type": file.type || "application/pdf"
-                    })
-                });
+            const nameParts = clientName.trim().split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts[1] || '';
+            
+            // Remove extension from original file
+            const fileNameWithoutExt = originalFileName.replace(/\.[^/.]+$/, '');
+            const extension = originalFileName.split('.').pop();
+            
+            // Create abbreviated document title (first 3 words, max 20 chars)
+            const abbreviatedTitle = fileNameWithoutExt
+                .split(' ')
+                .slice(0, 3)
+                .join('_')
+                .substring(0, 20)
+                .replace(/[^a-zA-Z0-9_]/g, '');
+            
+            return `${firstName}_${lastName}_${abbreviatedTitle}.${extension}`;
+        }
 
-                if (!urlResponse.ok) {
-                    throw new Error(`Upload URL request failed: ${urlResponse.status}`);
-                }
-
-                const uploadData = await urlResponse.json();
-                log(`Upload URL response: ${JSON.stringify(uploadData, null, 2)}`);
-
-                // Step 2: Upload file
-                log('Step 2: Uploading file to storage...');
-                const fileUploadResponse = await fetch(uploadData.url, {
-                    method: 'PUT',
-                    body: file
-                });
-
-                log(`File upload status: ${fileUploadResponse.status}`);
-                if (!fileUploadResponse.ok) {
-                    const errorText = await fileUploadResponse.text();
-                    log(`File upload error: ${errorText}`);
-                    throw new Error(`File upload failed: ${fileUploadResponse.status}`);
-                }
-
-                log('File uploaded successfully to storage');
-
-                // Step 3: Create object (FIXED - using uploadData.id directly)
-                log('Step 3: Creating object in Vertesia...');
-                const objectPayload = {
-                    "name": file.name,
-                    "description": `Test upload: ${file.name}`,
-                    "content": {
-                        "source": uploadData.id,  // FIXED: Use the id directly, it's already the full gs:// path
-                        "type": file.type || "application/pdf",
-                        "name": file.name
-                    },
-                    "properties": {
-                        "test_upload": true,
-                        "uploaded_at": new Date().toISOString()
-                    }
+        function addFilesToQueue(event) {
+            const files = Array.from(event.target.files);
+            const clientName = document.getElementById('clientName').value;
+            
+            if (files.length === 0) return;
+            
+            files.forEach(file => {
+                const newFileName = generateFileName(clientName, file.name);
+                const queueItem = {
+                    id: ++queueId,
+                    file: file,
+                    originalName: file.name,
+                    newName: newFileName,
+                    clientName: clientName,
+                    status: 'queued',
+                    addedAt: new Date()
                 };
-
-                log(`Object creation payload: ${JSON.stringify(objectPayload, null, 2)}`);
-
-                const createObjectResponse = await fetch('https://api.vertesia.io/api/v1/objects', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
-                    },
-                    body: JSON.stringify(objectPayload)
-                });
-
-                log(`Object creation status: ${createObjectResponse.status}`);
                 
-                if (!createObjectResponse.ok) {
-                    const errorText = await createObjectResponse.text();
-                    log(`Object creation error: ${errorText}`);
-                    throw new Error(`Object creation failed: ${createObjectResponse.status}`);
+                uploadQueue.push(queueItem);
+                log(`Added to queue: ${file.name} -> ${newFileName}`);
+            });
+            
+            updateQueueDisplay();
+            scheduleRefresh();
+            event.target.value = '';
+        }
+
+        function updateQueueDisplay() {
+            document.getElementById('queueLength').textContent = uploadQueue.length;
+            
+            const queueItemsDiv = document.getElementById('queueItems');
+            queueItemsDiv.innerHTML = '';
+            
+            uploadQueue.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `queue-item ${item.status}`;
+                
+                let statusIcon = '';
+                if (item.status === 'processing') statusIcon = '<div class="spinner"></div>';
+                else if (item.status === 'completed') statusIcon = '✓';
+                else if (item.status === 'failed') statusIcon = '✗';
+                else statusIcon = '⏳';
+                
+                div.innerHTML = `
+                    <span>${item.newName}</span>
+                    <span>${statusIcon}</span>
+                `;
+                queueItemsDiv.appendChild(div);
+            });
+        }
+
+        function scheduleRefresh() {
+            const queueLength = uploadQueue.filter(item => item.status !== 'completed' && item.status !== 'failed').length;
+            const refreshDelay = Math.max(queueLength * 3, 10); // 3 seconds per item, minimum 10 seconds
+            
+            if (refreshTimer) clearTimeout(refreshTimer);
+            
+            let countdown = refreshDelay;
+            const countdownInterval = setInterval(() => {
+                document.getElementById('nextRefresh').textContent = `${countdown} seconds`;
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('nextRefresh').textContent = 'Refreshing...';
+                    simulateRefresh();
                 }
+            }, 1000);
+        }
 
-                const createdObject = await createObjectResponse.json();
-                log(`SUCCESS! Object created: ${JSON.stringify(createdObject, null, 2)}`);
+        function simulateRefresh() {
+            log('🔄 Simulating client list refresh...');
+            setTimeout(() => {
+                log('✅ Client list refreshed');
+                document.getElementById('nextRefresh').textContent = 'Complete';
+            }, 2000);
+        }
 
-            } catch (error) {
-                log(`ERROR: ${error.message}`);
+        function clearQueue() {
+            uploadQueue = [];
+            updateQueueDisplay();
+            document.getElementById('currentlyProcessing').textContent = 'None';
+            if (refreshTimer) clearTimeout(refreshTimer);
+            document.getElementById('nextRefresh').textContent = 'Not scheduled';
+            log('Queue cleared');
+        }
+
+        async function startQueue() {
+            if (isProcessing) {
+                log('Queue already processing...');
+                return;
+            }
+            
+            if (uploadQueue.length === 0) {
+                log('No files in queue');
+                return;
+            }
+            
+            isProcessing = true;
+            document.getElementById('startBtn').disabled = true;
+            log(`Starting queue processing with ${uploadQueue.length} files...`);
+            
+            for (let i = 0; i < uploadQueue.length; i++) {
+                const item = uploadQueue[i];
+                if (item.status === 'completed' || item.status === 'failed') continue;
+                
+                item.status = 'processing';
+                document.getElementById('currentlyProcessing').textContent = item.newName;
+                updateQueueDisplay();
+                
+                log(`Processing ${i + 1}/${uploadQueue.length}: ${item.newName}`);
+                
+                try {
+                    await uploadFile(item);
+                    item.status = 'completed';
+                    log(`✅ Successfully uploaded: ${item.newName}`);
+                } catch (error) {
+                    item.status = 'failed';
+                    log(`❌ Failed to upload: ${item.newName} - ${error.message}`);
+                }
+                
+                updateQueueDisplay();
+                
+                // 3-5 second delay between uploads (random within range)
+                if (i < uploadQueue.length - 1) {
+                    const delay = 3000 + Math.random() * 2000; // 3-5 seconds
+                    log(`Waiting ${Math.round(delay/1000)}s before next upload...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            
+            isProcessing = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('currentlyProcessing').textContent = 'None';
+            log('🎉 Queue processing complete!');
+        }
+
+        async function uploadFile(queueItem) {
+            const file = queueItem.file;
+            const fileName = queueItem.newName;
+            
+            // Step 1: Get upload URL
+            const urlResponse = await fetch('https://api.vertesia.io/api/v1/objects/upload-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
+                },
+                body: JSON.stringify({
+                    "name": fileName,
+                    "mime_type": file.type || "application/pdf"
+                })
+            });
+
+            if (!urlResponse.ok) {
+                throw new Error(`Upload URL request failed: ${urlResponse.status}`);
             }
 
-            // Reset file input
-            event.target.value = '';
+            const uploadData = await urlResponse.json();
+
+            // Step 2: Upload file
+            const fileUploadResponse = await fetch(uploadData.url, {
+                method: 'PUT',
+                body: file
+            });
+
+            if (!fileUploadResponse.ok) {
+                throw new Error(`File upload failed: ${fileUploadResponse.status}`);
+            }
+
+            // Step 3: Create object
+            const objectPayload = {
+                "name": fileName,
+                "description": `Uploaded for ${queueItem.clientName}`,
+                "content": {
+                    "source": uploadData.id,
+                    "type": file.type || "application/pdf",
+                    "name": fileName
+                },
+                "properties": {
+                    "client": queueItem.clientName,
+                    "original_name": queueItem.originalName,
+                    "uploaded_at": new Date().toISOString()
+                }
+            };
+
+            const createObjectResponse = await fetch('https://api.vertesia.io/api/v1/objects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer sk-544583102491bf69b0351418bbdd2aa9'
+                },
+                body: JSON.stringify(objectPayload)
+            });
+
+            if (!createObjectResponse.ok) {
+                const errorText = await createObjectResponse.text();
+                throw new Error(`Object creation failed: ${createObjectResponse.status}`);
+            }
+
+            return await createObjectResponse.json();
         }
     </script>
 </body>
