@@ -29,9 +29,13 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 10px;
         }
         button:disabled {
             background: #ccc;
+        }
+        .button-group {
+            margin: 20px 0;
         }
         .log {
             background: #f8f9fa;
@@ -55,7 +59,10 @@
         <p>Click to select file or drag and drop</p>
     </div>
     
-    <button onclick="clearLog()">Clear Log</button>
+    <div class="button-group">
+        <button onclick="clearLog()">Clear Log</button>
+        <button onclick="copyLog()">Copy Log</button>
+    </div>
     
     <div id="log" class="log">Ready to upload...</div>
 
@@ -69,6 +76,16 @@
 
         function clearLog() {
             document.getElementById('log').textContent = '';
+        }
+
+        function copyLog() {
+            const logContent = document.getElementById('log').textContent;
+            navigator.clipboard.writeText(logContent).then(() => {
+                alert('Log copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy log: ', err);
+                alert('Failed to copy log');
+            });
         }
 
         async function uploadFile(event) {
@@ -115,13 +132,13 @@
 
                 log('File uploaded successfully to storage');
 
-                // Step 3: Create object
+                // Step 3: Create object (FIXED - using uploadData.id directly)
                 log('Step 3: Creating object in Vertesia...');
                 const objectPayload = {
                     "name": file.name,
                     "description": `Test upload: ${file.name}`,
                     "content": {
-                        "source": `gs://store_prod_dd0d3a_2ca798/${uploadData.id}`,
+                        "source": uploadData.id,  // FIXED: Use the id directly, it's already the full gs:// path
                         "type": file.type || "application/pdf",
                         "name": file.name
                     },
